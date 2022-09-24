@@ -40,26 +40,40 @@
         #mainNav .navbar-nav>li.nav-item>a.nav-link:hover {
             color: rgb(92, 90, 90);
         }
-    }
 
-    /* Chart.js CSS */
-    canvas {
-        -moz-user-select: none;
-        -webkit-user-select: none;
-        -ms-user-select: none;
-    }
+        .chart-container {
+            background-color: antiquewhite;
+            float: left;
+            /* position: relative; */
+            /* height: 40vh; */
+            width: 50vw;
+            margin: 0vh 5vw;
+            display: table-cell;
 
-    .chart-container {
-        /* height: 50%; */
-        width: 80%;
-        margin: 10vh;
-    }
+        }
 
-    .container {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
+        .chartText {
+            background-color: lightblue;
+            display: table-cell;
+        }
+
+        .chart {
+            background-color: aquamarine;
+            height: 55vh;
+        }
+
+        .chart2 {
+            background-color: rgb(127, 204, 255);
+            height: 110vh;
+        }
+
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
     }
 </style>
 {% endblock %}
@@ -85,10 +99,12 @@
 <!-- OpenStreetMap -->
 <!-- 建立地圖範圍 -->
 <div id="map"></div>
+
 <script>
     //設定圖層群組
     let layerGroup = null;
     let arrLayers = [];
+
 
     // 讀取模型計算地址的經緯度
     var house_lon = {{ house_lon | tojson }};
@@ -105,9 +121,13 @@
 
     // 宮廟經緯度  
     var placeofworkships = {{ placeofworkships | tojson }}
+
+    // 醫院經緯度  
+    var hospitals = {{ hospitals | tojson }}
+
     // 醫院的經緯度，[0]:經度, [1]:緯度
-    var h_lon = {{ hospitals['features'][0]['geometry']['coordinates'][0] | tojson}}
-    var h_lat = {{ hospitals['features'][0]['geometry']['coordinates'][1] | tojson}}
+    // var h_lon = {{ hospitals['features'][0]['geometry']['coordinates'][0] | tojson}}
+    // var h_lat = {{ hospitals['features'][0]['geometry']['coordinates'][1] | tojson}}
 
     // 設定地圖中心與放大比例
     var map = L.map('map', {
@@ -157,10 +177,6 @@
         // iconAnchor: [50, 50], // point of the icon which will correspond to marker's location
     });
 
-
-
-
-
     // 模型計算地址的750m範圍
     var circle = L.circle([house_lat, house_lon], {
         stroke: false,
@@ -172,6 +188,12 @@
 
     // 顯示模型計算地址的房子圖示
     var house_addr = L.marker([house_lat, house_lon], { icon: houseIcon }).addTo(map);
+    // setContent('<h6>估價區間：<br><b>${{ m20_Price }}~${{ p20_Price }} 萬/坪</b></h6>')
+    // .setContent('<h6>估計房價：<br><b>${{price}} 萬/坪</b></h6>')
+    var popup = L.popup()
+        .setLatLng([house_lat, house_lon])
+        .setContent('<h6>估計房價：<br><b>${{price}} 萬/坪</b></h6>')
+        .openOn(map);
 
     // 超商圖資
     for (let c of conveniencestores['features']) {
@@ -189,6 +211,20 @@
 
     //將 layerGroup 放到 map 當中
     layerGroup.addTo(map);
+
+    // 醫院圖資
+    for (let hos of hospitals['features']) {
+        // console.log(c['geometry']['coordinates'][0])
+        let marker = L.marker([hos['geometry']['coordinates'][1], hos['geometry']['coordinates'][0]], { icon: hospitalIcon })
+            .bindPopup('醫院')
+        // .openPopup();
+
+        //將 markers 各別放到空陣列 arrLayers 當中
+        arrLayers.push(marker);
+
+    }
+    //迴圈執行完畢後，將 arrLayers 放到 layerGroup 當中
+    layerGroup = L.layerGroup(arrLayers);
 
     // 公園圖資
     for (let p of parks['features']) {
@@ -238,32 +274,100 @@
     layerGroup.addTo(map);
 
     // 顯示醫院地址的房子圖示
-    var hospitals = L.marker([h_lat, h_lon], { icon: hospitalIcon }).addTo(map);
+    // var hospitals = L.marker([h_lat, h_lon], { icon: hospitalIcon }).addTo(map);
 
 
-
-    // 圖層
-    // var baselayers = {
-    //     'OpenStreetMap.Mapnik': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
-    //     'OpenStreetMap.DE': L.tileLayer('https://{s}.tile.openstreetmap.de/tiles/osmde/{z}/{x}/{y}.png'),
-    //     'OpenStreetMap.CH': L.tileLayer('https://tile.osm.ch/switzerland/{z}/{x}/{y}.png'),
-    //     'OpenStreetMap.France': L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png'),
-    //     'OpenStreetMap.HOT': L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png'),
-    //     'OpenStreetMap.BZH': L.tileLayer('https://tile.openstreetmap.bzh/br/{z}/{x}/{y}.png'),
-    //     'OpenTopoMap': L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png')
-    // };
-    // var overlays = {};
-    // L.control.layers(baselayers, overlays).addTo(map);
-    // baselayers['OpenStreetMap.Mapnik'].addTo(map);
-    // L.tileLayer('layer 的 url').addTo(map);
 </script>
+<hr>
+
+<!-- 房屋資訊 -->
+<div class="container">
+    <h3>房屋資訊</h3>
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th scope="col">輸入項目</th>
+                <th scope="col">輸入值</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- 地址 -->
+            <tr>
+                <td>估價地址</td>
+                <td>{{address}}</td>
+            </tr>
+            <!-- 交易標的 -->
+            <tr>
+                <td>交易標的</td>
+                <td>{{tInput['target']}}</td>
+            </tr>
+            <!-- 車位種類 -->
+            <tr>
+                <td>車位種類</td>
+                <td>{{tInput['parking']}}</td>
+            </tr>
+            <!-- 房/廳/衛 -->
+            <tr>
+                <td>房/廳/衛</td>
+                <td>{{tInput['bedroom']}}房/{{tInput['livingroom']}}廳/{{tInput['bathroom']}}衛</td>
+            </tr>
+            <!-- 有無管理組職 -->
+            <tr>
+                <td>有無管理組職</td>
+                <td>{{tInput['manage_org']}}</td>
+            </tr>
+            <!-- 主建築物面積 -->
+            <tr>
+                <td>主建築物面積</td>
+                <td>{{tInput['main_area']}}坪</td>
+            </tr>
+            <!-- 附屬建物面積 -->
+            <tr>
+                <td>附屬建物面積</td>
+                <td>{{tInput['sub_area']}}坪</td>
+            </tr>
+            <!-- 陽台面積 -->
+            <tr>
+                <td>陽台面積</td>
+                <td>{{tInput['balcony']}}坪</td>
+            </tr>
+            <!-- 屋齡 -->
+            <tr>
+                <td>屋齡</td>
+                <td>{{tInput['age']}}年</td>
+            </tr>
+            <!-- 樓層 -->
+            <tr>
+                <td>電梯/樓層/總樓</td>
+                <td>{{tInput['elevator']}}/{{tInput['floor']}}樓/{{tInput['total_floor']}}樓</td>
+            </tr>
+            <!-- 建物型態 -->
+            <tr>
+                <td>建物型態</td>
+                <td>{{tInput['type']}}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+<hr>
 
 <!-- 圖表區 -->
-<div class="container">
-    <!-- 預設圖表字體 -->
-    <script>Chart.defaults.font.size = 18;</script>
+<!-- 預設圖表字體 -->
+<script>
+    CW = document.body.clientWidth;
+    // console.log(CW)
+    if (CW <= 992) {
+        Chart.defaults.font.size = 10;
+        // barChart.canvas.parentNode.style.height = '128px';
+        // barChart.canvas.parentNode.style.width = '128px';
+    } else {
+        Chart.defaults.font.size = 18;
+    }
 
-    <!-- 長條圖：周邊設施數量統計 -->
+</script>
+
+<!-- 長條圖：周邊設施數量統計 -->
+<div class="chart">
     <div class="chart-container">
         <canvas id="barChart"></canvas>
         <script>
@@ -282,8 +386,8 @@
             env_count = {{ env_count | tojson }}
 
             const bar_labels = [
-                '交通運輸設施',
-                '醫療設施',
+                '捷運出入口',
+                '醫院',
                 '超商',
                 '學校',
                 '宮廟',
@@ -312,10 +416,10 @@
                     ],
                     borderWidth: 3,
                     data: [
-                        tsp_count['total'],
-                        mdc_count['total'],
+                        tsp_count['MRTs'],
+                        mdc_count['hospitals'],
                         eco_count['conveniencestores'],
-                        edu_count['schools'] + edu_count['universities'],
+                        edu_count['schools'],
                         sft_count['placeofworkships'],
                         env_count['parks']
                     ],
@@ -350,8 +454,18 @@
             );
         </script>
     </div>
+    <div class="chartText">
+        <!-- <h2>長條圖：周邊設施數量統計</h2>
+        <ul>
+            <li>綜合收集影響房屋本身以及周邊環境資料，運用環域分析 (GIS) 以及機器學習手法綜合推估房價。</li>
+            <li>綜合收集影響房屋本身以及周邊環境資料，運用環域分析 (GIS) 以及機器學習手法綜合推估房價。</li>
+        </ul> -->
+    </div>
+</div>
+<hr>
 
-    <!-- 折線圖：歷史成交價格 -->
+<!-- 折線圖：歷史成交價格 -->
+<div class="chart">
     <div class="chart-container">
         <canvas id="line_history_Chart"></canvas>
         <script>
@@ -408,8 +522,18 @@
         </script>
 
     </div>
+    <div class="chartText">
+        <h2>折線圖：歷史成交價格</h2>
+        <ul>
+            <li>綜合收集影響房屋本身以及周邊環境資料，運用環域分析 (GIS) 以及機器學習手法綜合推估房價。</li>
+            <li>用地圖介面提供房屋周遭環境資訊，例如交通、醫療設施，以及商業設施，讓使用者能夠更直覺的評估房屋地點周遭環境。</li>
+        </ul>
+    </div>
+</div>
+<hr>
 
-    <!-- 雷達圖： -->
+<!-- 雷達圖：區域指標 -->
+<div class="chart2">
     <div class="chart-container">
         <canvas id="radarChart" width="400" height="400"></canvas>
         <script>
@@ -483,7 +607,12 @@
         </script>
 
     </div>
-
-
+    <div class="chartText">
+        <h2>雷達圖：區域指標</h2>
+        <ul>
+            <li>綜合收集影響房屋本身以及周邊環境資料，運用環域分析 (GIS) 以及機器學習手法綜合推估房價。</li>
+            <li>用地圖介面提供房屋周遭環境資訊，例如交通、醫療設施，以及商業設施，讓使用者能夠更直覺的評估房屋地點周遭環境。</li>
+        </ul>
+    </div>
 </div>
 {% endblock %}
