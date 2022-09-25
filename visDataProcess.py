@@ -41,7 +41,7 @@ def tableDataProcess(tInput:dict):
     # 建物型態資料轉換
     typeValue = {
     '1':'公寓', 
-    '2':'華夏', 
+    '2':'華廈', 
     '3':'住宅大樓', 
     '4':'套房',}
     for key, value in typeValue.items():
